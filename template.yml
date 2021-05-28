@@ -597,16 +597,16 @@ Resources:
               except Exception:
                   return return_helper_syntax()
 
-            def return_helper_syntax():
-              return {
-                  "statusCode": 200,
-                  "body": ("your call was incomplete, don't forget the syntax: \n \n"
-                          "https://url?ip=12.34.56.78&name=friendname\n \n"
-                          "you need the '?' followed by the keyword 'ip='\n"
-                          "do not use quotes or anything around the ip adress.\n"
-                          "followed by an '&' sign \n"
-                          "then use the name so you can check the ip adress with the name of the friend")
-              }
+          def return_helper_syntax():
+            return {
+                "statusCode": 200,
+                "body": ("your call was incomplete, don't forget the syntax: \n \n"
+                        "https://url?ip=12.34.56.78&name=friendname\n \n"
+                        "you need the '?' followed by the keyword 'ip='\n"
+                        "do not use quotes or anything around the ip adress.\n"
+                        "followed by an '&' sign \n"
+                        "then use the name so you can check the ip adress with the name of the friend")
+            }
 
       Policies:
         Version: '2012-10-17'
