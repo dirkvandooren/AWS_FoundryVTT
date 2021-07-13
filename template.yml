@@ -1,14 +1,14 @@
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   AMI:
-    Type: String
-    Default: ami-0932440befd74cdba
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: Do not change it, unless you know what you are doing
+    Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
   InstanceType:
     Type: String
     Default: t2.micro
   HostedZone:
-    Type: String
-    Default: Z0........
+    Type: AWS::Route53::HostedZone::Id
   DomainName:
     Type: String
     Default: foundry........
@@ -19,7 +19,7 @@ Parameters:
     Type: String
     Default: nodejs-url
   VpcId:
-    Type: String
+    Type: AWS::EC2::VPC::Id
   AdminIPs:
     Type: String
     Default: ""
