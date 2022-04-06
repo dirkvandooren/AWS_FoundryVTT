@@ -1,13 +1,13 @@
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   AMI:
-    Type: String
+    Type: AWS::EC2::Image::Id
     Default: ami-0932440befd74cdba
   InstanceType:
     Type: String
     Default: t2.micro
   HostedZone:
-    Type: String
+    Type: AWS::Route53::HostedZone::Id
     Default: Z0........
   DomainName:
     Type: String
@@ -19,7 +19,7 @@ Parameters:
     Type: String
     Default: nodejs-url
   VpcId:
-    Type: String
+    Type: AWS::EC2::VPC::Id
   AdminIPs:
     Type: String
     Default: ""
@@ -329,7 +329,7 @@ Resources:
         Type: "REGIONAL"
       Domain:
         BasePath: /
-        CertificateArn: !GetAtt GetCertificate.ARN
+        CertificateArn: !Ref  GetCertificate
         DomainName: !Sub manage-${DomainName}
         EndpointConfiguration: "REGIONAL"
         Route53:
@@ -633,79 +633,12 @@ Resources:
             Method: get
             RestApiId:
               Ref: Api
-  CertificateLambda:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: index.lambda_handler
-      Runtime: python3.8
-      Policies:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action: acm:*
-            Resource: "*"
-          - Effect: Allow
-            Action: route53:*
-            Resource: '*'
-      Timeout: 900
-      MemorySize: 128
-      InlineCode: !Sub |
-        import boto3
-        import cfnresponse
-        import json
-        from time import sleep
-        client = boto3.client('acm')
 
-        def lambda_handler(event,context):
-          if event['RequestType'] == "Create":
-            SLEEP = 0
-            MAX_SLEEP = 840
-            r53 = boto3.client('route53')
-            requestedArn = client.request_certificate(
-              DomainName='manage-${DomainName}',
-              ValidationMethod='DNS'
-            )['CertificateArn']
-            cert = client.describe_certificate(CertificateArn=requestedArn)['Certificate']
-            record = cert['DomainValidationOptions'][0]
-            print(cert)
-            print(json.dumps(record))
-            r53.change_resource_record_sets(
-              HostedZoneId='${HostedZone}',
-              ChangeBatch={
-                  'Changes': [
-                      {
-                          'Action': 'CREATE',
-                          'ResourceRecordSet': {
-                              'Name': record['ResourceRecord']['Name'],
-                              'Type': record['ResourceRecord']['Type'],
-                              'TTL': 300,
-                              'ResourceRecords': [
-                                  {
-                                      'Value': record['ResourceRecord']['Value']
-                                  },
-                              ]
-                          }
-                      },
-                  ]
-              }
-            )
-            while not get_status(requestedArn) and SLEEP < MAX_SLEEP:
-              SLEEP += 15
-              sleep(15)
-            if SLEEP >= MAX_SLEEP:
-              cfnresponse.send(event, context, cfnresponse.FAILED, {}, "CertificateValidation")
-            else:
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, {"ARN": requestedArn}, "CertificateValidation")
-          elif event['RequestType'] == "Delete":
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, "CertificateValidation")
-
-        def get_status(arn):
-          cert = client.describe_certificate(CertificateArn=arn)['Certificate']
-          status = cert['DomainValidationOptions'][0]['ValidationStatus']
-          if status != "SUCCESS":
-              return False
-          return True
   GetCertificate:
-    Type: Custom::Certificate
+    Type: AWS::CertificateManager::Certificate
     Properties:
-      ServiceToken: !GetAtt CertificateLambda.Arn
+      DomainName: !Sub manage-${DomainName}
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Sub manage-${DomainName}
+          HostedZoneId: !Ref HostedZone
